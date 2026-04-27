@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
@@ -23,8 +24,13 @@ Route::middleware('jwt.auth')->group(function () {
     Route::post('/subs-id', [AuthController::class, 'updateSubsId']);
 
     Route::get('/dashboard/total-prospect', [DashboardController::class, 'totalProspect']);
-    Route::get('/prospecting', [ProspectingController::class, 'index']);
-    Route::get('/prospecting/store', [ProspectingController::class, 'store']);
+
+    Route::prefix('prospecting')->group(function () {
+        Route::get('/', [ProspectingController::class, 'index']);
+        Route::get('/store', [ProspectingController::class, 'store']);
+        Route::get('/detail/{id?}', [ProspectingController::class, 'show']);
+        Route::get('/pipeline', [ProspectingController::class, 'pipeline']);
+    });
 
     Route::prefix('master')->group(function () {
         Route::get('/provinsi', [MasterController::class, 'getProvinsi']);
@@ -37,6 +43,13 @@ Route::middleware('jwt.auth')->group(function () {
         Route::post('/store', [CustomerController::class, 'store']);
         Route::get('/detail/{id?}', [CustomerController::class, 'show']);
         Route::put('/update/{id?}', [CustomerController::class, 'update']);
+    });
+
+    Route::prefix('activity')->group(function () {
+        Route::get('/', [ActivityController::class, 'index']);
+        Route::get('/activity-status', [ActivityController::class, 'activityStatus']);
+        Route::post('/store', [ActivityController::class, 'store']);
+        Route::put('/update/{id?}', [ActivityController::class, 'update']);
     });
 });
 Route::post('/refresh', [AuthController::class, 'refresh']);

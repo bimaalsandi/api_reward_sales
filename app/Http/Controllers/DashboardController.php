@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Activity;
 use App\Models\Prospecting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Vinkla\Hashids\Facades\Hashids;
 
 class DashboardController extends Controller
 {
@@ -17,6 +19,30 @@ class DashboardController extends Controller
             $totalNegosiasi = $prospectingModel->getTotalCount(Auth::id(), 'negosiasi');
             $totalDealing = $prospectingModel->getTotalCount(Auth::id(), 'dealing');
             $totalCancel = $prospectingModel->getTotalCount(Auth::id(), 'cancel');
+
+
+            $activityModel = new Activity();
+            $activity = Activity::where('activity.user_id', Auth::id())
+                ->select(
+                    'activity.id',
+                    'activity.type',
+                    'activity.note',
+                    'activity.activity_date',
+                    'users.name',
+                    'ms_customer.name as customer_name',
+                )
+                ->leftJoin('users', 'users.id', '=', 'activity.user_id')
+                ->leftJoin('prospecting', 'prospecting.id', '=', 'activity.prospect_id')
+                ->leftJoin('ms_customer', 'ms_customer.id', '=', 'prospecting.customer_id')
+                ->limit(5)->get();
+
+            foreach ($activity as $ra) {
+                $ra->date = $ra->activity_date ?  date('d-m-Y', strtotime($ra->activity_date)) : null;
+                $ra->time = $ra->activity_date ? date('H:i', strtotime($ra->activity_date)) : null;
+                $ra->encode_id = Hashids::encode($ra->id);
+                unset($ra->activity_date);
+            }
+
             return response()->json([
                 'status' => true,
                 'message' => 'Success',
@@ -27,13 +53,20 @@ class DashboardController extends Controller
                         'total_negosiasi' => $totalNegosiasi,
                         'total_dealing' => $totalDealing,
                         'total_cancel' => $totalCancel
+                    ],
+                    'activity' => $activity,
+                    'sales_target' => [
+                        'date' => 'Jan 2026',
+                        'revenue' => '1.000.000',
+                        'target' => '10.000.000',
+                        'percentage' => '10%',
                     ]
                 ]
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
-                'message' => 'Failed'
+                'message' => 'Failed' . $e->getMessage()
             ], 500);
         }
     }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Prospecting;
+use App\Models\ProspectingPipeline;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +19,8 @@ class ProspectingController extends Controller
             $prospectingModel = new Prospecting();
             $prospecting = $prospectingModel->getProsespecting(Auth::id(), $status);
             foreach ($prospecting as $rc) {
-                $rc->customer_id = Hashids::encode($rc->customer_id);
+                $rc->encode_id = Hashids::encode($rc->id);
+                $rc->encode_customer_id = Hashids::encode($rc->customer_id);
             }
             return response()->json([
                 'status' => true,
@@ -39,8 +41,9 @@ class ProspectingController extends Controller
 
             $validate = Validator::make($request->all(), [
                 'customer_id' => 'required|exists:ms_customer,id',
-                'status' => 'required|in:prospect,follow-up,negosiasi,dealing,cancel',
+                'status' => 'required|exists:ms_pipeline,id',
                 'note' => 'nullable|string|max:255',
+                'kode' => 'required|string|max:15',
             ]);
 
             if ($validate->fails()) {
@@ -53,14 +56,76 @@ class ProspectingController extends Controller
             $prospecting = new Prospecting();
             $prospecting->user_id = Auth::id();
             $prospecting->customer_id = $request->input('customer_id');
-            $prospecting->status = 'prospect';
+            $prospecting->status = $request->input('status');
             $prospecting->note = $request->input('note');
+            $prospecting->kode = $request->input('kode');
             $prospecting->created_by = Auth::id();
+            $prospecting->updated_by = Auth::id();
             $prospecting->save();
+
+            // !!PROSPECTING PIPELINE
+            $prospectPipeline = new ProspectingPipeline();
+            $prospectPipeline->prospecting_id = $prospecting->id;
+            $prospectPipeline->status = $request->input('status');
+            $prospectPipeline->note = $request->input('note');
+            $prospectPipeline->created_by = Auth::id();
+            $prospectPipeline->updated_by = Auth::id();
+            $prospectPipeline->save();
+
             return response()->json([
                 'status' => true,
                 'message' => 'Success',
             ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed'
+            ], 500);
+        }
+    }
+
+    public function show($encodeId = null)
+    {
+        try {
+            if (!$encodeId) {
+                return response()->json([
+                    'status' => true,
+                    'message' => 'ID is required',
+                ], 500);
+            }
+            $id = Hashids::decode($encodeId)[0];
+
+            $prospectingModel = new Prospecting();
+            $prospecting = $prospectingModel->getProspectinById($id);
+            $kota = DB::table('ms_kabupaten')->where('id', $prospecting->city_id)->first();
+            $provinsi = DB::table('ms_provinsi')->where('id', $kota->provinsi_id)->first();
+            $prospecting->alamat = $kota->name . ', ' . $provinsi->name;
+            $prospecting->encode_id = Hashids::encode($prospecting->id);
+            $prospecting->encode_customer_id = Hashids::encode($prospecting->customer_id);
+            return response()->json([
+                'status' => true,
+                'message' => 'Success',
+                'data' => $prospecting
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed' . $e->getMessage() . $e->getFile() . $e->getLine()
+            ], 500);
+        }
+    }
+
+    public function pipeline()
+    {
+        try {
+            $companyID = Auth::user()->company_id;
+            $data = DB::table('ms_pipeline')->select('id', 'name')->where('company_id', $companyID)->get();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Success',
+                'data' => $data
+            ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
