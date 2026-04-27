@@ -21,16 +21,16 @@ class Prospecting extends Model
 
         $query = DB::table('prospecting')
             ->where('user_id', $user_id);
-        if ($status == 'prospect') {
-            $query->where('status', 'prospect');
-        } elseif ($status == 'follow-up') {
-            $query->where('status', 'follow-up');
-        } elseif ($status == 'negosiasi') {
-            $query->where('status', 'negosiasi');
-        } elseif ($status == 'dealing') {
-            $query->where('status', 'dealing');
-        } elseif ($status == 'cancel') {
-            $query->where('status', 'cancel');
+        if ($status == 1) {
+            $query->where('status', 1);
+        } elseif ($status == 2) {
+            $query->where('status', 2);
+        } elseif ($status == 3) {
+            $query->where('status', 3);
+        } elseif ($status == 4) {
+            $query->where('status', 4);
+        } elseif ($status == 5) {
+            $query->where('status', 5);
         }
         $total = $query->count();
         if ($total > 0) {

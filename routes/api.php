@@ -29,6 +29,7 @@ Route::middleware('jwt.auth')->group(function () {
         Route::get('/', [ProspectingController::class, 'index']);
         Route::get('/store', [ProspectingController::class, 'store']);
         Route::get('/detail/{id?}', [ProspectingController::class, 'show']);
+        Route::put('/update/{id?}', [ProspectingController::class, 'update']);
         Route::get('/pipeline', [ProspectingController::class, 'pipeline']);
     });
 

@@ -39,6 +39,7 @@ class ProspectingController extends Controller
     {
         try {
 
+
             $validate = Validator::make($request->all(), [
                 'customer_id' => 'required|exists:ms_customer,id',
                 'status' => 'required|exists:ms_pipeline,id',
@@ -50,6 +51,16 @@ class ProspectingController extends Controller
                 return response()->json([
                     'status' => false,
                     'message' => $validate->errors()->first()
+                ], 400);
+            }
+
+            $companyProses = Prospecting::where('customer_id', $request->input('customer_id'))
+                ->where('status', '!=', 5)
+                ->get();
+            if (count($companyProses) > 0) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Customer is still in process'
                 ], 400);
             }
 
@@ -102,6 +113,18 @@ class ProspectingController extends Controller
             $prospecting->alamat = $kota->name . ', ' . $provinsi->name;
             $prospecting->encode_id = Hashids::encode($prospecting->id);
             $prospecting->encode_customer_id = Hashids::encode($prospecting->customer_id);
+            $pipeline = DB::table('prospecting_pipeline')
+                ->select(
+                    'prospecting_pipeline.id',
+                    'prospecting_pipeline.prospecting_id',
+                    'ms_pipeline.name as status',
+                    'prospecting_pipeline.created_at',
+                    'prospecting_pipeline.updated_at',
+                )
+                ->where('prospecting_pipeline.prospecting_id', $prospecting->id)
+                ->leftJoin('ms_pipeline', 'ms_pipeline.id', '=', 'prospecting_pipeline.status')
+                ->get();
+            $prospecting->history = $pipeline;
             return response()->json([
                 'status' => true,
                 'message' => 'Success',
@@ -110,7 +133,56 @@ class ProspectingController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
-                'message' => 'Failed' . $e->getMessage() . $e->getFile() . $e->getLine()
+                'message' => 'Failed' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function update(Request $request, $encodeId = null)
+    {
+        try {
+            DB::beginTransaction();
+            if (!$encodeId) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'ID is required'
+                ], 500);
+            }
+            $id = Hashids::decode($encodeId)[0];
+
+            $validate = Validator::make($request->all(), [
+                'status' => 'required|exists:ms_pipeline,id',
+            ]);
+            if ($validate->fails()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => $validate->errors()->first()
+                ], 400);
+            }
+
+            $result = Prospecting::find($id);
+            $result->status = $request->input('status');
+            $result->updated_by = Auth::id();
+            $result->save();
+
+            $prospectPipeline = new ProspectingPipeline();
+            $prospectPipeline->prospecting_id = $id;
+            $prospectPipeline->status = $request->input('status');
+            $prospectPipeline->note = $request->input('note');
+            $prospectPipeline->created_by = Auth::id();
+            $prospectPipeline->updated_by = Auth::id();
+            $prospectPipeline->save();
+
+            DB::commit();
+            return response()->json([
+                'status' => true,
+                'message' => 'Success'
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed'
             ], 500);
         }
     }

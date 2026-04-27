@@ -14,11 +14,11 @@ class DashboardController extends Controller
     {
         try {
             $prospectingModel = new Prospecting();
-            $totalProspect = $prospectingModel->getTotalCount(Auth::id(), 'prospect');
-            $totalFollowUp = $prospectingModel->getTotalCount(Auth::id(), 'follow-up');
-            $totalNegosiasi = $prospectingModel->getTotalCount(Auth::id(), 'negosiasi');
-            $totalDealing = $prospectingModel->getTotalCount(Auth::id(), 'dealing');
-            $totalCancel = $prospectingModel->getTotalCount(Auth::id(), 'cancel');
+            $totalProspect = $prospectingModel->getTotalCount(Auth::id(), 1);
+            $totalQuotation = $prospectingModel->getTotalCount(Auth::id(), 2);
+            $totalNegosiasi = $prospectingModel->getTotalCount(Auth::id(), 3);
+            $totalDealing = $prospectingModel->getTotalCount(Auth::id(), 4);
+            $totalCancel = $prospectingModel->getTotalCount(Auth::id(), 5);
 
 
             $activityModel = new Activity();
@@ -49,7 +49,7 @@ class DashboardController extends Controller
                 'data' => [
                     'pipeline' => [
                         'total_prospect' => $totalProspect,
-                        'total_follow_up' => $totalFollowUp,
+                        'total_quotation' => $totalQuotation,
                         'total_negosiasi' => $totalNegosiasi,
                         'total_dealing' => $totalDealing,
                         'total_cancel' => $totalCancel
