@@ -28,12 +28,14 @@ class DashboardController extends Controller
                     'activity.type',
                     'activity.note',
                     'activity.activity_date',
+                    'ms_activity_status.name as activity_status',
                     'users.name',
                     'ms_customer.name as customer_name',
                 )
                 ->leftJoin('users', 'users.id', '=', 'activity.user_id')
                 ->leftJoin('prospecting', 'prospecting.id', '=', 'activity.prospect_id')
                 ->leftJoin('ms_customer', 'ms_customer.id', '=', 'prospecting.customer_id')
+                ->leftJoin('ms_activity_status', 'ms_activity_status.id', '=', 'activity.activity_status')
                 ->limit(5)->get();
 
             foreach ($activity as $ra) {

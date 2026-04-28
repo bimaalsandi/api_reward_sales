@@ -22,11 +22,16 @@ class Customer extends Model
         'updated_by',
     ];
 
-    public function getCustomer($user_id)
+    public function getCustomer($user_id, $search)
     {
         $query = DB::table('ms_customer')
             ->select('ms_customer.*')
             ->where('user_id', $user_id)
+            ->where(function ($query) use ($search) {
+                $query->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('email', 'like', '%' . $search . '%')
+                    ->orWhere('phone_number', 'like', '%' . $search . '%');
+            })
             ->get();
         return $query;
     }

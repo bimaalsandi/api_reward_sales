@@ -10,11 +10,12 @@ use Vinkla\Hashids\Facades\Hashids;
 
 class CustomerController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         try {
+            $search = $request->input('search');
             $customerModel = new Customer();
-            $customer = $customerModel->getCustomer(Auth::id());
+            $customer = $customerModel->getCustomer(Auth::id(), $search);
             foreach ($customer as $rc) {
                 $rc->encode_id = Hashids::encode($rc->id);
             }
@@ -35,10 +36,10 @@ class CustomerController extends Controller
     {
         try {
             $validate = Validator::make($request->all(), [
-                'name' => 'required|string|max:255',
+                'name' => 'required|string|max:255|unique:ms_customer,name',
                 'alamat' => 'required|string',
                 'city_id' => 'required|integer',
-                'email' => 'required|email|max:255',
+                'email' => 'required|email|max:255|unique:ms_customer,email',
                 'phone_number' => 'required|string|max:20',
                 'note' => 'nullable|string',
             ]);
@@ -50,15 +51,17 @@ class CustomerController extends Controller
                 ], 400);
             }
 
+
+            $auth = Auth::user();
             $customer = new Customer();
             $customer->user_id = Auth::id();
-            $customer->company_id = Auth::user()->customer_id;
+            $customer->company_id = $auth->company_id;
             $customer->name = $request->input('name');
             $customer->alamat = $request->input('alamat');
             $customer->city_id = $request->input('city_id');
             $customer->email = $request->input('email');
             $customer->phone_number = $request->input('phone_number');
-            $customer->status = 0;
+            $customer->status = 1;
             $customer->note = $request->input('note');
             $customer->created_by = Auth::id();
             $customer->save();
@@ -133,10 +136,10 @@ class CustomerController extends Controller
             }
 
             $validate = Validator::make($request->all(), [
-                'name' => 'nullable|string|max:255',
+                'name' => 'nullable|string|max:255|unique:ms_customer,name,' . $customer->id,
                 'alamat' => 'nullable|string',
                 'city_id' => 'nullable|integer',
-                'email' => 'nullable|email|max:255',
+                'email' => 'nullable|email|max:255|unique:ms_customer,email,' . $customer->id,
                 'phone_number' => 'nullable|string|max:20',
                 'note' => 'nullable|string',
             ]);
@@ -148,13 +151,14 @@ class CustomerController extends Controller
                 ], 400);
             }
 
-            $customer->company_id = Auth::user()->customer_id;
+            $auth = Auth::user();
+            $customer->company_id = $auth->company_id;
             $customer->name = $request->input('name', $customer->name);
             $customer->alamat = $request->input('alamat', $customer->alamat);
             $customer->city_id = $request->input('city_id', $customer->city_id);
             $customer->email = $request->input('email', $customer->email);
             $customer->phone_number = $request->input('phone_number', $customer->phone_number);
-            $customer->status = 0;
+            $customer->status = 1;
             $customer->note = $request->input('note', $customer->note);
             $customer->updated_by = Auth::id();
             $customer->save();

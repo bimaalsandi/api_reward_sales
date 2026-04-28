@@ -10,8 +10,10 @@ class Prospecting extends Model
     protected $table = 'prospecting';
     protected $fillable = [
         'user_id',
+        'kode',
         'customer_id',
         'status',
+        'note',
         'created_by',
         'updated_by',
     ];
