@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Activity;
 use App\Models\Prospecting;
 use App\Models\ProspectingPipeline;
 use Illuminate\Http\Request;
@@ -38,7 +39,7 @@ class ProspectingController extends Controller
     public function store(Request $request)
     {
         try {
-
+            DB::beginTransaction();
 
             $validate = Validator::make($request->all(), [
                 'customer_id' => 'required|exists:ms_customer,id',
@@ -83,11 +84,21 @@ class ProspectingController extends Controller
             $prospectPipeline->updated_by = Auth::id();
             $prospectPipeline->save();
 
+            $activity = Activity::where('prospect_id', $prospecting->id)->get();
+            if ($prospecting->status != 1 && count($activity) == 0) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Failed to create becouse there is no activity'
+                ], 400);
+            }
+
+            DB::commit();
             return response()->json([
                 'status' => true,
                 'message' => 'Success',
             ], 201);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'status' => false,
                 'message' => 'Failed'
@@ -160,7 +171,23 @@ class ProspectingController extends Controller
                 ], 400);
             }
 
+            $activity = Activity::where('prospect_id', $id)->get();
+            if (count($activity) == 0) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Failed to update becouse there is no activity'
+                ], 400);
+            }
+
             $result = Prospecting::find($id);
+
+            if ($result->status <= $request->input('status')) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Failed to update becouse status not valid'
+                ], 400);
+            }
+
             $result->status = $request->input('status');
             $result->updated_by = Auth::id();
             $result->save();
